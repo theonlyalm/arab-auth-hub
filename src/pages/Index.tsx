@@ -6,8 +6,8 @@ const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState('');
 
-  const handleLoginSuccess = (username: string) => {
-    setCurrentUser(username);
+  const handleLoginSuccess = (user: any) => {
+    setCurrentUser(user.email || user.id);
     setIsLoggedIn(true);
   };
 

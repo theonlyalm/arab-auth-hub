@@ -6,51 +6,69 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-
-// Mock user data (simulating user-pass.txt file)
-const mockUsers = [
-  { username: 'admin', password: 'admin123' },
-  { username: 'user', password: 'user123' },
-  { username: 'hacker', password: 'hacker123' }
-];
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const formSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 interface LoginPageProps {
-  onLoginSuccess: (username: string) => void;
+  onLoginSuccess: (user: any) => void;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: '',
+      email: '',
       password: '',
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const handleAuth = async (values: z.infer<typeof formSchema>, action: 'login' | 'signup') => {
     setError('');
-    
-    const user = mockUsers.find(u => u.username === values.username);
-    
-    if (!user) {
-      setError('Username is wrong');
-      return;
+    setLoading(true);
+
+    try {
+      const response = await fetch('https://bkehwyimfzbefiukyfem.supabase.co/functions/v1/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          email: values.email,
+          password: values.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Authentication failed');
+        return;
+      }
+
+      // Successful authentication
+      onLoginSuccess(data.user);
+    } catch (err) {
+      setError('Network error. Please try again.');
+      console.error('Auth error:', err);
+    } finally {
+      setLoading(false);
     }
-    
-    if (user.password !== values.password) {
-      setError('Password is wrong');
-      return;
-    }
-    
-    // Successful login
-    onLoginSuccess(values.username);
+  };
+
+  const onLogin = (values: z.infer<typeof formSchema>) => {
+    handleAuth(values, 'login');
+  };
+
+  const onSignup = (values: z.infer<typeof formSchema>) => {
+    handleAuth(values, 'signup');
   };
 
   return (
@@ -68,7 +86,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </div>
         </div>
 
-        {/* Login Form */}
+        {/* Auth Form */}
         <Card className="border-border shadow-lg">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center text-foreground">
@@ -79,59 +97,128 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground">Username</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter your username"
-                          className="bg-background border-border text-foreground"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground">Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="Enter your password"
-                          className="bg-background border-border text-foreground"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {error && (
-                  <div className="text-destructive text-sm text-center font-medium">
-                    {error}
-                  </div>
-                )}
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="login">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onLogin)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground">Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="Enter your email"
+                              className="bg-background border-border text-foreground"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground">Password</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              placeholder="Enter your password"
+                              className="bg-background border-border text-foreground"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    {error && (
+                      <div className="text-destructive text-sm text-center font-medium">
+                        {error}
+                      </div>
+                    )}
 
-                <Button 
-                  type="submit" 
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                  size="lg"
-                >
-                  Sign In
-                </Button>
-              </form>
-            </Form>
+                    <Button 
+                      type="submit" 
+                      disabled={loading}
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                      size="lg"
+                    >
+                      {loading ? 'Signing In...' : 'Sign In'}
+                    </Button>
+                  </form>
+                </Form>
+              </TabsContent>
+              
+              <TabsContent value="signup">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSignup)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground">Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="Enter your email"
+                              className="bg-background border-border text-foreground"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground">Password</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              placeholder="Create a password (min 6 characters)"
+                              className="bg-background border-border text-foreground"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    {error && (
+                      <div className="text-destructive text-sm text-center font-medium">
+                        {error}
+                      </div>
+                    )}
+
+                    <Button 
+                      type="submit" 
+                      disabled={loading}
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                      size="lg"
+                    >
+                      {loading ? 'Creating Account...' : 'Create Account'}
+                    </Button>
+                  </form>
+                </Form>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
