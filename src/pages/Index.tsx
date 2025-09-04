@@ -1,14 +1,26 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import React, { useState } from 'react';
+import LoginPage from '@/components/LoginPage';
+import WelcomePage from '@/components/WelcomePage';
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState('');
+
+  const handleLoginSuccess = (username: string) => {
+    setCurrentUser(username);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCurrentUser('');
+  };
+
+  if (isLoggedIn) {
+    return <WelcomePage username={currentUser} onLogout={handleLogout} />;
+  }
+
+  return <LoginPage onLoginSuccess={handleLoginSuccess} />;
 };
 
 export default Index;
