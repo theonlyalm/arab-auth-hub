@@ -132,12 +132,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 </Button>
               </form>
             </Form>
-            
-            <div className="mt-6 text-center">
-              <p className="text-xs text-muted-foreground">
-                Demo users: admin/admin123, user/user123, hacker/hacker123
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>
